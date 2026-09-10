@@ -1,0 +1,4 @@
+state/
+*.mackeyboard.orig
+.DS_Store
+.claude/

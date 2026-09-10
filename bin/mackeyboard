@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+# MacKeyboard dispatcher.
+#   mackeyboard apply   [target...]   write managed blocks / profile
+#   mackeyboard revoke  [target...]   remove exactly what apply added
+#   mackeyboard status  [target...]   one line per target
+#   mackeyboard diff    [target...]   show what apply would write
+#   mackeyboard check   [target...]   run each tool's own config validator
+# `--revoke` is accepted as an alias for `revoke`. With no targets, all run.
+set -euo pipefail
+
+SELF="${BASH_SOURCE[0]}"
+while [ -L "$SELF" ]; do SELF="$(readlink "$SELF")"; done
+ROOT="$(cd "$(dirname "$SELF")/.." && pwd)"
+
+usage() { sed -n '2,9p' "$SELF" | sed 's/^# \{0,1\}//'; exit "${1:-0}"; }
+
+cmd="${1:-}"; cmd="${cmd#--}"
+[ -n "$cmd" ] || usage 1
+case "$cmd" in
+    -h|help) usage 0 ;;
+    apply|revoke|status|diff|check) ;;
+    *) printf 'unknown command: %s\n\n' "$cmd" >&2; usage 1 ;;
+esac
+shift
+
+targets=("$@")
+if [ ${#targets[@]} -eq 0 ]; then
+    for t in "$ROOT"/targets/*.sh; do targets+=("$(basename "$t" .sh)"); done
+fi
+
+[ "$cmd" = status ] && printf '%-10s %-12s %s\n' TARGET STATE DETAIL
+
+rc=0
+for t in "${targets[@]}"; do
+    script="$ROOT/targets/$t.sh"
+    [ -f "$script" ] || { printf 'no such target: %s\n' "$t" >&2; rc=1; continue; }
+    bash "$script" "$cmd" || rc=1
+done
+exit $rc
