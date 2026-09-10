@@ -66,7 +66,9 @@ the file is touched.
 
 **iTerm2** has no text config. Apply drops a dynamic profile file named
 `MacKeyboard.json` whose parent is the current default profile, then points
-`Default Bookmark Guid` at it and enables the two global clipboard preferences.
+`Default Bookmark Guid` at it, enables the two global clipboard preferences, and
+sets `NoSyncNeverAskAboutMouseReportingFrustration` so Cmd+C after a Zellij drag
+(which already copied via `pbcopy`) does not offer to disable mouse reporting.
 Every original value is recorded in state, and revoke restores each one exactly
 (or deletes it if it was unset). iTerm2 rewrites its plist on quit, so apply and
 revoke refuse to run while iTerm2 is open.

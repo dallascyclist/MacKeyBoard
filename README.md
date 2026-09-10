@@ -73,8 +73,11 @@ Cmd+Ctrl+, (kitty).
   `require('mackeyboard').apply(config)` before your final `return`.
 - iTerm2 has no text config. `apply` installs a dynamic profile named
   **MacKeyboard** that inherits from your current default profile, makes it
-  the default, and enables the two global clipboard preferences. Every
-  original value is recorded in `state/` and `revoke` restores it exactly.
+  the default, enables the two global clipboard preferences, and silences the
+  "mouse reporting has prevented making a selection" alert (with Zellij owning
+  the mouse, a drag already copied via `pbcopy`, so Cmd+C has nothing left to
+  do). Every original value is recorded in `state/` and `revoke` restores it
+  exactly.
 - `apply` is idempotent.
 
 ## Tests

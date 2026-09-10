@@ -12,7 +12,11 @@ DYN_DIR="$MK_HOME/Library/Application Support/iTerm2/DynamicProfiles"
 JSON="$DYN_DIR/MacKeyboard.json"
 GUID="A7C0F1E2-4B3D-4C5E-9F60-4D41434B4559"   # stable so re-apply is idempotent
 UNSET="__unset__"
-GLOBAL_BOOLS=(CopySelection AllowClipboardAccess)
+# CopySelection: copy-on-select. AllowClipboardAccess: OSC 52 writes.
+# NoSyncNeverAskAboutMouseReportingFrustration: with zellij owning the mouse,
+# Cmd+C after a zellij drag finds no native selection and iTerm2 would offer
+# to disable mouse reporting; the copy already happened via pbcopy.
+GLOBAL_BOOLS=(CopySelection AllowClipboardAccess NoSyncNeverAskAboutMouseReportingFrustration)
 
 profile_json() {
     local parent="$1"
