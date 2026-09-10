@@ -30,7 +30,9 @@ Every target is configured so that:
 - Copy-on-select is on: a mouse selection lands on the clipboard by itself.
 - Terminal programs may write the clipboard via OSC 52 (never read it).
 - Both Option keys act as Alt.
-- Zellij uses `pbcopy`, copies on select, and has mouse mode on.
+- Zellij uses `pbcopy`, copies on select, and has mouse mode on. `Alt+m` runs
+  Zellij's `ToggleMouseMode` so a program that grabs the mouse (Claude Code,
+  vim, htop) can be selected from natively with Cmd+C, then toggled back.
 
 ## Repository layout
 
@@ -55,6 +57,9 @@ clearly delimited managed block:
 the file is touched.
 
 - Last-wins formats (Ghostty, kitty, Zellij KDL): the block is appended.
+  Zellij gets a second block inside its existing `keybinds` node, because
+  Zellij reads only the first top-level `keybinds` node; a file without one
+  gets the bind as a new top-level node inside the appended block instead.
 - TOML (Alacritty, Warp): duplicate tables are illegal in TOML, so the block is
   inserted directly under an existing `[section]` header when one exists, and
   otherwise appended together with the header. A key already set by the user in
@@ -78,7 +83,7 @@ revoke refuse to run while iTerm2 is open.
 - Before a file is first modified a one-time copy is saved next to it as
   `<file>.mackeyboard.orig`. It is never overwritten.
 - If apply created the file, revoke deletes it (and the `.orig` is not needed).
-- Apply is idempotent: running it twice leaves one block.
+- Apply is idempotent: running it twice leaves the same set of blocks.
 - After revoke, the file is compared to the `.orig`; a byte-identical match is
   reported and the `.orig` is removed. A mismatch is reported and the `.orig`
   is kept.

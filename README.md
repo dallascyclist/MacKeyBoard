@@ -2,7 +2,8 @@
 
 Make every terminal emulator on a Mac behave the same way when Zellij is the
 multiplexer inside it: **Cmd+C / Cmd+V copy and paste, mouse wheel scrolls,
-mouse selection copies, and the Option key is Alt.** Each change is a clearly
+mouse selection copies, the Option key is Alt, and one key (`Alt+m`) hands the
+mouse back to the emulator for programs that grab it.** Each change is a clearly
 marked block that a single `revoke` removes, leaving the rest of your config
 exactly as it was.
 
@@ -29,12 +30,35 @@ in the next.
 | Programs may write the clipboard (OSC 52) | write allowed, read denied |
 | Both Option keys act as Alt | per-emulator Option/Meta setting |
 | Zellij copies via `pbcopy` | `copy_command "pbcopy"`, `copy_on_select true`, `mouse_mode true` |
+| One key hands the mouse back to the emulator | Zellij binding `Alt+m` → `ToggleMouseMode`, for programs that grab the mouse |
+
+## Copying inside Zellij
+
+With Zellij owning the mouse there are two copy paths, and Cmd+C is not the
+trigger for either of them:
+
+- **Plain shell pane.** Drag to select and let go. Zellij hands the selection
+  to `pbcopy` on mouse-up; Cmd+V pastes it anywhere. Cmd+C afterwards is a
+  harmless no-op because the emulator has no selection of its own.
+- **Program that grabs the mouse** (Claude Code, vim with `mouse=a`, htop,
+  lazygit). Zellij forwards the drag to the program and never selects, so
+  nothing is copied. Press `Alt+m` to hand the mouse back to the emulator: a
+  drag is now a native selection and Cmd+C copies. Press `Alt+m` again to get
+  wheel scrollback and copy-on-select back. The toggle is per client, so it
+  only affects the window you press it in.
+
+`Alt+m` reaches Zellij only because both Option keys are configured to act as
+Alt, which is the same `apply` step. Set `MACKEYBOARD_ZELLIJ_TOGGLE_KEY` before
+`apply` to bind a different key (Zellij syntax, e.g. `"Alt Shift m"`).
+
+The emulators' own bypass still works without toggling: Option+drag in iTerm2,
+Shift+drag in Ghostty, kitty, Alacritty and WezTerm.
 
 ## Usage
 
 ```bash
 git clone https://github.com/dallascyclist/MacKeyBoard.git
-cd MacKeyboard
+cd MacKeyBoard
 
 bin/mackeyboard diff            # show exactly what would be written
 bin/mackeyboard apply           # all targets
@@ -75,8 +99,9 @@ Cmd+Ctrl+, (kitty).
   **MacKeyboard** that inherits from your current default profile, makes it
   the default, enables the two global clipboard preferences, and silences the
   "mouse reporting has prevented making a selection" alert (with Zellij owning
-  the mouse, a drag already copied via `pbcopy`, so Cmd+C has nothing left to
-  do). Every original value is recorded in `state/` and `revoke` restores it
+  the mouse, a drag in a shell pane was already copied via `pbcopy`, and in a
+  mouse-grabbing program `Alt+m` is the answer, so the alert only nags). Every
+  original value is recorded in `state/` and `revoke` restores it
   exactly.
 - `apply` is idempotent.
 

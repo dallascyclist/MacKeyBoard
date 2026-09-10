@@ -67,6 +67,8 @@ k="$H/.config/kitty/kitty.conf"
 [ -f "$k" ] && grep -q '^macos_option_as_alt both' "$k" && ok "kitty file created with block" || bad "kitty not created"
 z="$H/.config/zellij/config.kdl"
 grep -q '^copy_command "pbcopy"' "$z" && ok "zellij copy_command present" || bad "zellij block missing"
+grep -q 'bind "Alt m" { ToggleMouseMode; }' "$z" && ok "zellij mouse toggle bound" || bad "zellij mouse toggle missing"
+awk '/ToggleMouseMode/{t=NR} /^theme "ansi"/{th=NR} END{exit !(t && th && t<th)}' "$z" && ok "zellij toggle sits inside existing keybinds node" || bad "zellij toggle not inside keybinds node"
 a="$H/.config/alacritty/alacritty.toml"
 awk '/^\[window\]/{w=1;next} /^\[/{w=0} w && /option_as_alt/{found=1} END{exit !found}' "$a" && ok "alacritty option_as_alt inside existing [window]" || bad "alacritty option_as_alt not under [window]"
 [ "$(grep -c '^\[window\]' "$a")" -eq 1 ] && ok "alacritty has exactly one [window] table" || bad "duplicate [window]"
@@ -94,7 +96,7 @@ step "apply again (idempotent)"
 $MK apply >/dev/null || bad "second apply failed"
 for f in "$g" "$k" "$z" "$a" "$w" "$wp"; do
     c=$(grep -c '>>> MacKeyboard managed block >>>' "$f")
-    case "$f" in "$a") want=4;; "$wp") want=2;; *) want=1;; esac
+    case "$f" in "$a") want=4;; "$wp") want=2;; "$z") want=2;; *) want=1;; esac
     [ "$c" -eq "$want" ] && ok "$(basename "$f"): $c block(s), unchanged" || bad "$(basename "$f"): $c blocks, expected $want"
 done
 $MK apply iterm2 >/dev/null
@@ -123,6 +125,13 @@ defaults read "$MACKEYBOARD_ITERM_DOMAIN" CopySelection >/dev/null 2>&1 && bad "
 step "conflict detection"
 printf '\nmouse_mode false\n' >> "$z"
 if bash "$ROOT/targets/zellij.sh" apply 2>"$SANDBOX/conflict.txt"; then bad "zellij apply should refuse on conflict"; else grep -q 'mouse_mode' "$SANDBOX/conflict.txt" && ok "zellij refused and named mouse_mode" || bad "zellij refused without naming key"; fi
+# Zellij config with no keybinds node at all: the toggle must become a top-level keybinds node
+nk="$SANDBOX/no-keybinds.kdl"; printf 'theme "ansi"\n' > "$nk"
+if ZELLIJ_CONFIG_FILE="$nk" bash "$ROOT/targets/zellij.sh" apply >/dev/null 2>&1 && grep -q '^keybinds {' "$nk" && grep -q 'ToggleMouseMode' "$nk"; then ok "zellij no-keybinds: toggle added as top-level keybinds node"; else bad "zellij no-keybinds: apply failed or node missing"; fi
+[ "$(grep -c '>>> MacKeyboard managed block >>>' "$nk")" -eq 1 ] && ok "zellij no-keybinds: single block" || bad "zellij no-keybinds: $(grep -c '>>> MacKeyboard managed block >>>' "$nk") blocks"
+ZELLIJ_CONFIG_FILE="$nk" bash "$ROOT/targets/zellij.sh" check >/dev/null 2>&1 && ok "zellij no-keybinds: config validates" || bad "zellij no-keybinds: config invalid"
+ZELLIJ_CONFIG_FILE="$nk" bash "$ROOT/targets/zellij.sh" revoke >/dev/null 2>&1
+[ "$(cat "$nk")" = 'theme "ansi"' ] && ok "zellij no-keybinds: revoke restored original" || bad "zellij no-keybinds: revoke left: $(cat "$nk")"
 printf '[terminal]\nosc52 = "Disabled"\n' >> "$a"
 if bash "$ROOT/targets/alacritty.sh" apply 2>"$SANDBOX/conflict2.txt"; then bad "alacritty apply should refuse on conflict"; else grep -q 'osc52' "$SANDBOX/conflict2.txt" && ok "alacritty refused and named osc52" || bad "alacritty refused without naming key"; fi
 
